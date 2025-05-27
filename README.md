@@ -114,7 +114,7 @@ _(Select all that apply)_
 
 ---
 
-> ✏️ _Note: These questions are representative samples for this project. Final content will be determined by the R&D team._
+> ✏️ _Note: These questions are representative samples for this project. Final content will be determined by the R&D team. for the purpose of this project however, I have come up with sample questions_
 
 ---
 
@@ -142,7 +142,7 @@ Each phase has a distinct hormonal profile and symptom pattern. The phase classi
 
 Results are saved to:
 - **S3 Bucket** — for long-term recordkeeping
-- **DynamoDB Table** — updated daily for real-time access (not replaced)
+- **DynamoDB Table** — updated daily for real-time access (only one table)
 
 ---
 
@@ -174,7 +174,6 @@ These recommendations will evolve with ongoing data collection and may later inc
 - **AWS Lambda** – for serverless execution of classification & recommendations
 - **Amazon S3** – for storing user data and responses
 - **Amazon DynamoDB** – for real-time phase tracking
-- **API Gateway + CloudWatch** – for scheduling, logging, and monitoring
 
 ---
 
@@ -183,5 +182,3 @@ These recommendations will evolve with ongoing data collection and may later inc
 This project showcases the design and implementation of a practical, scalable data pipeline tailored for women's health tracking. By automating survey delivery, symptom processing, and phase-based personalization, we aim to close the knowledge gap and empower users with actionable daily insights — all using cloud-native infrastructure.
 
 ---
-
-Let me know if you'd like the `.md` file exported, or if you want help writing the Lambda code or setting up your S3 + DynamoDB structure!
