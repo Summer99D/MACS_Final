@@ -189,7 +189,8 @@ another completely different system is to use redshift. since we want to create 
 - **AWS Lambda** – for serverless execution of classification & recommendations
 - **Amazon S3** – for storing user data and responses
 - **Amazon DynamoDB** – for real-time phase tracking
-
+- **Amazon SQS** – for queuing surveys before vtriggering processing
+- **Amazon SNS** - for sending out recommendations to users
 ---
 
 ## 🔚 Summary
