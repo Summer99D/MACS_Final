@@ -159,6 +159,21 @@ The second Lambda function delivers daily, **phase-specific lifestyle recommenda
 These recommendations will evolve with ongoing data collection and may later incorporate ML-based personalization.
 
 ---
+## ⚠️ Pipeline Flow Chart
+
+this is how the pipeline should look in general. note that the dashed lines and the bubbles with less opacity are we can parallelize. (in SQS processing, the lambda processing)
+
+![flowchart](flowchart.png)
+
+how to scale up if number of surveys increase?
+
+based on this flowchart there are a few ways we can do it. the first thing as pictured in the flowchart is increasing SQS queues. 
+
+another thing we can do is to increase the series of lambdas. so instead on validation lambda triggering categorizaiton, I was thinking maybe we can have two different lambdas for evaluating questions, one for all quesitons but 5 (since it is used for recs lambda) and one for question 5. that way, question 5 will be processed separately and will wait for the other questions in recs and then they will meet in recs lambda. 
+
+another completely different system is to use redshift. since we want to create a column-level recs veriable, maybe creating that is better in the long run as we decide to do mass analysis on recommendations we gave out. 
+
+---
 
 ## 📈 Future Enhancements
 

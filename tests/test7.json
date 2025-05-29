@@ -1,0 +1,16 @@
+{
+  "user_id": "user_007",
+  "timestamp": "052724145950",
+  "time_elapsed": 4.2,
+  "responses": {
+    "Q1": 0,
+    "Q2": 0,
+    "Q3": 1,
+    "Q4": 2,
+    "Q5": {
+      "symptoms": ["Nothing noticeable today"],
+      "additional": ""
+    },
+    "Q6": 2
+  }
+}

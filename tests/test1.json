@@ -1,0 +1,16 @@
+{
+    "user_id": "user_001",
+    "timestamp": "052724100245",
+    "time_elapsed": 10.0,
+    "responses": {
+      "Q1": 4,
+      "Q2": 0,
+      "Q3": 1,
+      "Q4": 1,
+      "Q5": {
+        "symptoms": ["Cramps", "Feeling hot or flushed", "Digestive issues (constipation, diarrhea)"],
+        "additional": "Felt dizzy after waking up."
+      },
+      "Q6": 1
+    }
+  }

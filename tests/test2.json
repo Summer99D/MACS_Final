@@ -1,0 +1,16 @@
+{
+  "user_id": "user_002",
+  "timestamp": "052724121105",
+  "time_elapsed": 13.2,
+  "responses": {
+    "Q1": 1,
+    "Q2": 3,
+    "Q3": 3,
+    "Q4": 2,
+    "Q5": {
+      "symptoms": ["Headache or migraine", "Acne or skin breakouts"],
+      "additional": "Tension around temples."
+    },
+    "Q6": 2
+  }
+}

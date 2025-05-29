@@ -1,0 +1,16 @@
+{
+  "user_id": "user_004",
+  "timestamp": "052724121105",
+  "time_elapsed": 24.2,
+  "responses": {
+    "Q1": 2,
+    "Q2": 1,
+    "Q3": 2,
+    "Q4": 3,
+    "Q5": {
+      "symptoms": ["Cramps", "Bloating", "Breast fullness or swelling"],
+      "additional": "Mild constipation today."
+    },
+    "Q6": 3
+  }
+}

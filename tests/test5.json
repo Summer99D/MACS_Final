@@ -1,0 +1,16 @@
+{
+  "user_id": "user_005",
+  "timestamp": "052724143205",
+  "time_elapsed": 11.1,
+  "responses": {
+    "Q1": 3,
+    "Q2": 2,
+    "Q3": 4,
+    "Q4": 4,
+    "Q5": {
+      "symptoms": ["Breast tenderness", "Lower back pain"],
+      "additional": "Mild fatigue but manageable."
+    },
+    "Q6": 4
+  }
+}
