@@ -141,14 +141,19 @@ The categorization Lambda determines which of the four menstrual cycle phases th
 Each phase has a distinct hormonal profile and symptom pattern. The phase classification logic is encoded in a script (`lambda.py`) that maps survey response patterns (e.g., keywords, scores) to these phases.
 
 Results are saved to:
-- **S3 Bucket** — for long-term recordkeeping
 - **DynamoDB Table** — updated daily for real-time access (only one table)
 
+and then next lambda, the categorization lambda is invoked!
+
+---
+## 💡 Phase 2: Categorization Engine
+
+in the second lambda, I will have the validated surveys processed, and categorized as a phase. the phase will also be added to the users based on the date and time and then the categorizaiton lambda will invoke the next lambda, which is the recommendation engine.
 ---
 
-## 💡 Phase 2: Personalized Recommendation Engine
+## 💡 Phase 3: Personalized Recommendation Engine
 
-The second Lambda function delivers daily, **phase-specific lifestyle recommendations**. These may include:
+The third Lambda function generates daily, **phase-specific lifestyle recommendations**. These may include:
 
 - Recommended food groups (e.g., magnesium-rich foods during luteal phase)
 - Optimal exercise type and intensity (e.g., HIIT vs. yoga)
@@ -157,22 +162,27 @@ The second Lambda function delivers daily, **phase-specific lifestyle recommenda
 - Productivity strategies
 
 These recommendations will evolve with ongoing data collection and may later incorporate ML-based personalization.
+lastly, this lambda will trigger our last lambda, the email sending lambda. 
+
+the results will then be saved in the DynamoDB table under the recommendations sub-folder.
 
 ---
+## 💡 Phase 4: Sending emails Engine
+
+this lambda will send the specific recs that we assigned to each user to the emails that has been submitted previously (user_email.JSON file). this would be the final step of our pipeline.
+
 ## ⚠️ Pipeline Flow Chart
 
 this is how the pipeline should look in general. note that the dashed lines and the bubbles with less opacity are we can parallelize. (in SQS processing, the lambda processing)
 
 ![flowchart](flowchart.png)
 
-how to scale up if number of surveys increase?
+**how to scale up if number of surveys increase?**
 
 based on this flowchart there are a few ways we can do it. the first thing as pictured in the flowchart is increasing SQS queues. 
 
-another thing we can do is to increase the series of lambdas. so instead on validation lambda triggering categorizaiton, I was thinking maybe we can have two different lambdas for evaluating questions, one for all quesitons but 5 (since it is used for recs lambda) and one for question 5. that way, question 5 will be processed separately and will wait for the other questions in recs and then they will meet in recs lambda. 
-
-another completely different system is to use redshift. since we want to create a column-level recs veriable, maybe creating that is better in the long run as we decide to do mass analysis on recommendations we gave out. 
-
+the majority of this pipeline consists of lambdas and lambdas are scalable on their own (changing the number of batches/lambda workers) 
+so apart from the SQS batches that you can see in less opacity in the flowchart, the rest is pretty scalable as is!
 ---
 
 ## 📈 Future Enhancements
@@ -189,7 +199,7 @@ another completely different system is to use redshift. since we want to create 
 - **AWS Lambda** – for serverless execution of classification & recommendations
 - **Amazon S3** – for storing user data and responses
 - **Amazon DynamoDB** – for real-time phase tracking
-- **Amazon SQS** – for queuing surveys before vtriggering processing
+- **Amazon SQS** – for queuing surveys before triggering processing
 - **Amazon SNS** - for sending out recommendations to users
 ---
 

@@ -1,0 +1,8 @@
+[
+  {"user_id": "user_001", "email": "user1@example.com"},
+  {"user_id": "user_002", "email": "user2@example.com"},
+  {"user_id": "user_003", "email": "your_test_email@example.com"},
+  {"user_id": "user_004", "email": "samarneg@uchicago.edu"},
+  {"user_id": "user_005", "email": "last_test_email@example.com"}
+
+]

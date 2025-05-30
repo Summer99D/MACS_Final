@@ -1,4 +1,4 @@
-# rec_lambda.py (COMPLETE UPDATED VERSION - SMS Sending)
+# rec_lambda.py (MODIFIED to invoke send_email_lambda)
 
 import json
 import boto3
@@ -10,15 +10,14 @@ from decimal import Decimal
 # Initialize clients
 dynamodb = boto3.resource("dynamodb")
 s3 = boto3.client("s3")
-sns_client = boto3.client("sns", region_name="us-east-1") # <--- Initialize SNS client
+lambda_client = boto3.client("lambda") # <--- Add Lambda client to invoke send_email_lambda
 
 # Get environment variables (or define constants if not using env vars)
 S3_BUCKET = "final-summer99d"
 DYNAMO_TABLE_NAME = "CyclicalBetaSurvey"
 
-# --- SNS SMS Configuration (Optional for SMS, but useful for setting attributes) ---
-# You can set default SMS type (transactional/promotional) and sender ID in account settings
-# or per publish call. For project, usually default is fine.
+# Define the name of the new email sending Lambda function
+SEND_EMAIL_LAMBDA_FUNCTION_NAME = "send_email_lambda"
 
 # Helper function for DynamoDB Decimal conversion
 def convert_floats(obj):
@@ -62,7 +61,7 @@ def generate_recommendations(phase):
     return recs.get(phase, recs["Unknown"])
 
 def lambda_handler(event, context):
-    print(f"Received event: {json.dumps(event)}")
+    print(f"Received event for rec_lambda: {json.dumps(event)}")
 
     # Extract data from the event payload (sent by cat_lambda)
     user_id = event.get("user_id")
@@ -73,53 +72,8 @@ def lambda_handler(event, context):
 
     # --- Recommendation Generation ---
     recommendations_list = generate_recommendations(phase)
-    # Format recommendations for SMS (keep concise for character limits)
-    # SMS typically has 160 char limit for single message, longer messages are split.
-    # We'll truncate for a safer example.
-    recommendations_sms_text = "\\n".join([f"- {rec}" for rec in recommendations_list])
-    # A short greeting + recommendations
-    full_sms_message = f"Hello {user_id}! Your daily recs for {phase} phase:\\n{recommendations_sms_text}"
-    # Truncate to ensure it fits in a single message or is predictably split
-    full_sms_message = (full_sms_message[:150] + '...') if len(full_sms_message) > 150 else full_sms_message
-
-
-    # For SMS, you'll need the user's phone number.
-    # IMPORTANT: In a real application, you'd fetch the user's phone number from a user profile
-    # database (e.g., another DynamoDB table) using the user_id.
-    # For this project, you must replace the placeholder with a real phone number in E.164 format.
-    # E.g., user_phone_number = "+12065550100" (for US)
-    user_phone_number = "+15551234567" # <--- IMPORTANT: REPLACE THIS with a real test phone number!
-
-
-    if not user_phone_number or user_phone_number == "+15551234567":
-        print(f"Skipping SMS for user {user_id}: No valid recipient phone number configured or found.")
-        # Proceed with saving data even if SMS cannot be sent
-        sms_status = "SMS skipped (no valid number)."
-    else:
-        # --- Send Recommendations via SNS SMS ---
-        try:
-            response = sns_client.publish(
-                PhoneNumber=user_phone_number,
-                Message=full_sms_message,
-                # Optional: specify SMS type and sender ID
-                # MessageAttributes={
-                #     'AWS.SNS.SMS.SMSType': {'DataType': 'String', 'StringValue': 'Transactional'},
-                #     'AWS.SNS.SMS.SenderID': {'DataType': 'String', 'StringValue': 'YourAppId'} # Max 11 alphanumeric, not all countries support
-                # }
-            )
-            print(f"SMS sent successfully to {user_phone_number} for user {user_id}. MessageId: {response['MessageId']}")
-            sms_status = f"SMS sent to {user_phone_number}."
-
-        except ClientError as e:
-            print(f"Error sending SMS to {user_phone_number} for user {user_id}: {str(e)}")
-            sms_status = f"SMS failed: {str(e)}"
-        except Exception as e:
-            print(f"Unexpected error in SNS SMS sending for user {user_id}: {str(e)}")
-            sms_status = f"SMS failed unexpectedly: {str(e)}"
-
 
     # Prepare the complete result, including the recommendations for storage
-    # This 'result' dictionary contains all data from the pipeline stages
     result = {
         "user_id": user_id,
         "timestamp": timestamp, # Primary key for DynamoDB
@@ -127,8 +81,7 @@ def lambda_handler(event, context):
         "time_elapsed": time_elapsed,
         "phase": phase, # Categorized phase
         "recommendations": recommendations_list, # Generated recommendations
-        "valid": True, # Assuming valid if it reached rec_lambda
-        "sms_sent_status": sms_status # Add SMS status to the stored record
+        "valid": True # Assuming valid if it reached rec_lambda
     }
 
     # Save to DynamoDB
@@ -163,12 +116,32 @@ def lambda_handler(event, context):
     except Exception as e:
         print(f"Unexpected error saving to S3 for user {user_id}: {str(e)}")
 
+    # --- Invoke send_email_lambda ---
+    # Pass the necessary data to the email sending Lambda
+    email_payload = {
+        "user_id": user_id,
+        "phase": phase,
+        "recommendations_list": recommendations_list # Use the generated list
+    }
+    try:
+        response = lambda_client.invoke(
+            FunctionName=SEND_EMAIL_LAMBDA_FUNCTION_NAME,
+            InvocationType='Event', # Asynchronous invocation
+            Payload=json.dumps(email_payload)
+        )
+        print(f"Invoked {SEND_EMAIL_LAMBDA_FUNCTION_NAME} for user {user_id}. Status code: {response['StatusCode']}")
+    except ClientError as e:
+        print(f"Error invoking {SEND_EMAIL_LAMBDA_FUNCTION_NAME} for user {user_id}: {str(e)}")
+    except Exception as e:
+        print(f"Unexpected error invoking {SEND_EMAIL_LAMBDA_FUNCTION_NAME} for user {user_id}: {str(e)}")
+
+
     return {
         "statusCode": 200,
         "body": json.dumps({
             "user_id": user_id,
             "phase": phase,
             "recommendations": recommendations_list,
-            "status": f"Processed, recommendations generated, saved, and {sms_status}"
+            "status": "Processed, recommendations generated, saved, and email sending initiated."
         })
     }
