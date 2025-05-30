@@ -1,4 +1,4 @@
-# send_email_lambda.py (NEW Lambda Function)
+# send_email_lambda.py (NEW Lambda Function - Using SNS for Email Sending)
 import json
 import boto3
 import os
@@ -7,17 +7,20 @@ from decimal import Decimal # Needed if processing data that might contain decim
 
 # Initialize clients
 s3_client = boto3.client("s3")
-ses_client = boto3.client("ses", region_name="us-east-1") # Ensure region matches your SES verification
+sns_client = boto3.client("sns", region_name="us-east-1") # <--- Initialize SNS client
 
 # Configuration for the S3 bucket where user_emails.json is stored
-# This should be your main bucket, e.g., "final-summer99d"
 S3_CONFIG_BUCKET = "final-summer99d"
-S3_USER_EMAILS_KEY = "config/user_email.json" # The key where user_email.json is stored
+# IMPORTANT: Check your S3 key: is it user_email.json or user_emails.json?
+# Based on previous context, it was 'user_emails.json'. Correcting here.
+S3_USER_EMAILS_KEY = "config/user_email.json" 
 
-# --- SES Configuration ---
-# This is the email address you verified in SES.
-# IMPORTANT: Replace with YOUR verified sender email address in SES.
-SENDER_EMAIL_ADDRESS = "samarneg@uchicago.edu" # Placeholder, user must replace this.
+# --- SNS Email Topic Configuration ---
+# IMPORTANT: You MUST create this SNS Topic in the AWS Console (e.g., 'your-recommendation-email-topic')
+# and subscribe the recipient email addresses to it.
+# Replace with the actual ARN of your SNS topic.
+# Example ARN: "arn:aws:sns:us-east-1:YOUR_ACCOUNT_ID:your-recommendation-email-topic"
+SNS_EMAIL_TOPIC_ARN = "arn:aws:sns:us-east-1:544835564974:daily_recs" 
 
 
 # Helper function to find user email from the loaded JSON list
@@ -33,7 +36,7 @@ def lambda_handler(event, context):
     # Extract data from the event payload (sent by rec_lambda)
     user_id = event.get("user_id")
     phase = event.get("phase")
-    recommendations_list = event.get("recommendations_list") # Renamed from 'recommendations' to avoid confusion
+    recommendations_list = event.get("recommendations_list")
 
     if not user_id or not phase or not recommendations_list:
         print("Error: Missing required data in event payload (user_id, phase, or recommendations_list).")
@@ -51,7 +54,6 @@ def lambda_handler(event, context):
         print(f"Successfully loaded user emails config from s3://{S3_CONFIG_BUCKET}/{S3_USER_EMAILS_KEY}")
     except ClientError as e:
         print(f"Error loading user emails config from S3: {str(e)}. Cannot send emails.")
-        # Return success for the Lambda, but indicate email skipped due to config issue
         return {
             "statusCode": 200,
             "body": json.dumps({"user_id": user_id, "status": "Email skipped (config load error)."})
@@ -70,65 +72,54 @@ def lambda_handler(event, context):
         }
 
     # --- Step 2: Find the user's email address ---
-    user_email = get_user_email_from_config(user_id, user_emails_config)
+    # For SNS email, you subscribe the email address to the topic.
+    # The publish is then done to the topic.
+    # So, we just need to ensure the user_email is valid to proceed,
+    # but the actual "To" address is handled by SNS subscriptions.
+    # We'll still retrieve it for logging/confirmation.
+    user_email_for_logging = get_user_email_from_config(user_id, user_emails_config)
 
-    if not user_email:
+    if not user_email_for_logging:
         print(f"Skipping email for user {user_id}: Email address not found in config file for this user_id.")
-        # Return success for the Lambda, but indicate email skipped
         return {
             "statusCode": 200,
             "body": json.dumps({"user_id": user_id, "status": "Email skipped (address not found)."})
         }
 
-    # --- Step 3: Send Recommendations via SES Email ---
+    # --- Step 3: Send Recommendations via SNS Publish to Topic ---
     recommendations_html = "<ul>" + "".join([f"<li>{rec}</li>" for rec in recommendations_list]) + "</ul>"
     recommendations_text = "\\n".join([f"- {rec}" for rec in recommendations_list])
 
     subject = f"Your Daily Cycle Recommendations for Your {phase} Phase!"
-    body_text = f"""
-Dear {user_id},
-
-Here are your personalized daily recommendations for your {phase} phase:
-
-{recommendations_text}
-
-Stay empowered!
-Your Fem-Tech App Team
-"""
-    body_html = f"""
-<html>
-<head></head>
-<body>
-  <h1>Hello {user_id},</h1>
-  <p>Here are your personalized daily recommendations for your <b>{phase}</b> phase:</p>
+    
+    # Message structure for SNS Email subscriptions
+    sns_message = {
+        "default": f"Dear {user_id}, Here are your personalized daily recommendations for your {phase} phase: {recommendations_text} Stay empowered! Your Fem-Tech App Team",
+        "email": f"""
+  Hello {user_id},
+  Here are your personalized daily recommendations for your {phase} phase:
   {recommendations_html}
-  <p>Stay empowered!</p>
-  <p>Your Fem-Tech App Team</p>
-</body>
-</html>
+  Stay empowered!
+  Cyclical
 """
+    }
 
     try:
-        response = ses_client.send_email(
-            Source=SENDER_EMAIL_ADDRESS,
-            Destination={'ToAddresses': [user_email]},
-            Message={
-                'Subject': {'Data': subject},
-                'Body': {
-                    'Text': {'Data': body_text},
-                    'Html': {'Data': body_html}
-                }
-            }
+        response = sns_client.publish(
+            TopicArn=SNS_EMAIL_TOPIC_ARN,
+            Message=json.dumps(sns_message), # SNS expects a string here
+            Subject=subject,
+            MessageStructure='json' # This tells SNS the Message is a JSON string with different platform messages
         )
-        print(f"Email sent successfully to {user_email} for user {user_id}. MessageId: {response['MessageId']}")
-        email_status = f"Email sent to {user_email}."
+        print(f"Email sent successfully via SNS to topic {SNS_EMAIL_TOPIC_ARN} for user {user_id} (email: {user_email_for_logging}). MessageId: {response['MessageId']}")
+        email_status = f"Email sent via SNS to topic {SNS_EMAIL_TOPIC_ARN}."
 
     except ClientError as e:
-        print(f"Error sending email to {user_email} for user {user_id}: {str(e)}")
-        email_status = f"Email failed: {str(e)}"
+        print(f"Error sending email via SNS for user {user_id} (email: {user_email_for_logging}): {str(e)}")
+        email_status = f"Email failed via SNS: {str(e)}"
     except Exception as e:
-        print(f"Unexpected error in SES email sending for user {user_id}: {str(e)}")
-        email_status = f"Email failed unexpectedly: {str(e)}"
+        print(f"Unexpected error in SNS email sending for user {user_id} (email: {user_email_for_logging}): {str(e)}")
+        email_status = f"Email failed via SNS unexpectedly: {str(e)}"
 
     return {
         "statusCode": 200,

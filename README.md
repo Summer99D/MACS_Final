@@ -24,7 +24,7 @@ Throughout the month, women experience natural hormonal fluctuations that affect
 
 Understanding these shifts allows users to make more informed daily decisions, leading to better health and performance outcomes.
 
-![Feminine Monthly Hormones vs. Men](hormone.jpg)
+![Feminine Monthly Hormones vs. Men](photos/hormone.jpg)
 
 ---
 
@@ -169,13 +169,26 @@ the results will then be saved in the DynamoDB table under the recommendations s
 ---
 ## 💡 Phase 4: Sending emails Engine
 
+before creating the lambda, I had to create a topic in the SNS section in my console and then used the Arn key to activate my SNS in my code. 
+
+!["this is the topic creation step"](photos/topic_creation.png)
+
+
+!["this is the subscriptions confirmation to my Email"](photos/subs.png)
+
+
 this lambda will send the specific recs that we assigned to each user to the emails that has been submitted previously (user_email.JSON file). this would be the final step of our pipeline.
 
+
+![the email test looks like](photos/email_test.png)
+
+
+---
 ## ⚠️ Pipeline Flow Chart
 
 this is how the pipeline should look in general. note that the dashed lines and the bubbles with less opacity are we can parallelize. (in SQS processing, the lambda processing)
 
-![flowchart](flowchart.png)
+![flowchart](photos/flowchart.png)
 
 **how to scale up if number of surveys increase?**
 
@@ -202,6 +215,9 @@ so apart from the SQS batches that you can see in less opacity in the flowchart,
 - **Amazon SQS** – for queuing surveys before triggering processing
 - **Amazon SNS** - for sending out recommendations to users
 ---
+## Final Result:
+
+I finally managed to put my own email as an end point and test that it all works. 
 
 ## 🔚 Summary
 
