@@ -185,6 +185,10 @@ this lambda will send the specific recs that we assigned to each user to the ema
 ![the email test looks like](photos/email_test.png)
 
 
+### IMPORTANT NOTE
+
+If I want to send emails personalized to each user, it is best practiced with SES but since I did not have permission to use it, I had to use SNS and change settings manually in the console!
+
 ---
 ## ⚠️ Pipeline Flow Chart
 
