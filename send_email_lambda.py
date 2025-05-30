@@ -86,35 +86,33 @@ def lambda_handler(event, context):
             "body": json.dumps({"user_id": user_id, "status": "Email skipped (address not found)."})
         }
 
-    # --- Step 3: Send Recommendations via SNS Publish to Topic ---
-    recommendations_html = "<ul>" + "".join([f"<li>{rec}</li>" for rec in recommendations_list]) + "</ul>"
-    recommendations_text = "\\n".join([f"- {rec}" for rec in recommendations_list])
 
-    subject = f"Your Daily Cycle Recommendations for Your {phase} Phase!"
-    
-    # Message structure for SNS Email subscriptions
-    sns_message = {
-        "default": f"Dear {user_id}, Here are your personalized daily recommendations for your {phase} phase: {recommendations_text} Stay empowered! Your Fem-Tech App Team",
-        "email": f"""
-  Hello {user_id},
-  Here are your personalized daily recommendations for your {phase} phase:
-  {recommendations_html}
-  Stay empowered!
-  Cyclical
-"""
-    }
+    # --- Step 3: Send Recommendations via SNS Publish to Topic ---
+    # ... (recommendations_html, recommendations_text, subject, sns_message definition) ...
 
     try:
         response = sns_client.publish(
             TopicArn=SNS_EMAIL_TOPIC_ARN,
-            Message=json.dumps(sns_message), # SNS expects a string here
+            Message=json.dumps(sns_message),
             Subject=subject,
-            MessageStructure='json' # This tells SNS the Message is a JSON string with different platform messages
+            MessageStructure='json',
+            # --- NEW: Add MessageAttributes for filtering ---
+            MessageAttributes={
+                'user_id': { # Name of the attribute to filter on
+                    'DataType': 'String', # Data type must be String, Number, or Binary
+                    'StringValue': user_id # The actual user_id for this message
+                },
+                'phase': { # Optional: You could also filter by phase
+                    'DataType': 'String',
+                    'StringValue': phase
+                }
+            }
         )
         print(f"Email sent successfully via SNS to topic {SNS_EMAIL_TOPIC_ARN} for user {user_id} (email: {user_email_for_logging}). MessageId: {response['MessageId']}")
         email_status = f"Email sent via SNS to topic {SNS_EMAIL_TOPIC_ARN}."
 
     except ClientError as e:
+        # ... (rest of error handling) ...
         print(f"Error sending email via SNS for user {user_id} (email: {user_email_for_logging}): {str(e)}")
         email_status = f"Email failed via SNS: {str(e)}"
     except Exception as e:

@@ -171,8 +171,10 @@ the results will then be saved in the DynamoDB table under the recommendations s
 
 before creating the lambda, I had to create a topic in the SNS section in my console and then used the Arn key to activate my SNS in my code. 
 
-!["this is the topic creation step"](photos/topic_creation.png)
+!["this is the topic creation step"](photos/topic_subscription.png)
 
+
+**I had to add policies so that only user 004 will be sent to my email**
 
 !["this is the subscriptions confirmation to my Email"](photos/subs.png)
 
